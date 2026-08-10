@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-neutral-950 text-neutral-100 antialiased;
+}
+
+/* Scrollbar discreto */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-neutral-700 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-neutral-600;
+}
+
+/* ─────────────── Estilos de markdown en las respuestas ─────────────── */
+.md {
+  @apply text-[15px] leading-relaxed text-neutral-100;
+}
+.md > *:first-child {
+  margin-top: 0;
+}
+.md > *:last-child {
+  margin-bottom: 0;
+}
+.md p {
+  @apply my-3;
+}
+.md h1 {
+  @apply text-xl font-bold mt-6 mb-3 text-white;
+}
+.md h2 {
+  @apply text-lg font-bold mt-6 mb-2 text-white border-b border-neutral-800 pb-1;
+}
+.md h3 {
+  @apply text-base font-semibold mt-5 mb-2 text-marca-300;
+}
+.md h4 {
+  @apply text-sm font-semibold mt-4 mb-1 text-neutral-200;
+}
+.md ul {
+  @apply my-3 space-y-1.5 pl-5 list-disc marker:text-marca-500;
+}
+.md ol {
+  @apply my-3 space-y-1.5 pl-5 list-decimal marker:text-marca-500;
+}
+.md li > ul,
+.md li > ol {
+  @apply my-1.5;
+}
+.md strong {
+  @apply font-semibold text-white;
+}
+.md em {
+  @apply italic text-neutral-300;
+}
+.md a {
+  @apply text-marca-400 underline underline-offset-2 hover:text-marca-300 break-words;
+}
+.md blockquote {
+  @apply border-l-2 border-marca-600 pl-4 my-4 text-neutral-300 italic;
+}
+.md hr {
+  @apply my-6 border-neutral-800;
+}
+.md code {
+  @apply bg-neutral-800 text-marca-200 px-1.5 py-0.5 rounded text-[13px] font-mono;
+}
+.md pre {
+  @apply bg-neutral-900 border border-neutral-800 rounded-lg p-4 my-4 overflow-x-auto;
+}
+.md pre code {
+  @apply bg-transparent p-0 text-neutral-200 text-[13px];
+}
+.md table {
+  @apply w-full my-4 text-sm border-collapse;
+}
+.md thead {
+  @apply bg-neutral-800/70;
+}
+.md th {
+  @apply border border-neutral-700 px-3 py-2 text-left font-semibold text-white;
+}
+.md td {
+  @apply border border-neutral-800 px-3 py-2 align-top;
+}
+.md tbody tr:nth-child(even) {
+  @apply bg-neutral-900/50;
+}
+.md .tabla-scroll {
+  @apply overflow-x-auto;
+}
+
+/* Animación del cursor mientras escribe */
+@keyframes parpadeo {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+.cursor-escribiendo {
+  animation: parpadeo 1s ease-in-out infinite;
+}
