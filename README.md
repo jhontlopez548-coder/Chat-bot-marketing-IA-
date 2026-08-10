@@ -4,17 +4,49 @@
 
 No es un chat genérico traducido al español: piensa, calcula y habla como un estratega colombiano. Pesos colombianos, Nequi, contraentrega, quincenas, Día de la Madre, Addi, Servientrega y dialecto local en cada respuesta.
 
+**Funciona gratis y sin configurar nada en Vercel.**
+
 ---
 
-## Qué hace
+## Empezar a usarlo (3 caminos)
 
-- **26 herramientas que se ejecutan de verdad** (no las inventa el modelo): calculadoras de ROAS, presupuesto, márgenes, LTV/CAC, diagnóstico de campañas, estructura de cuenta, públicos, remarketing, guiones y más.
-- **Búsqueda web en vivo** para traer las actualizaciones recientes de Meta Ads y marketing digital.
-- **Razonamiento visible** (panel plegable) y **streaming** token a token.
-- **Contexto de negocio persistente**: nombre, ciudad, presupuesto y ticket promedio se guardan en el navegador y viajan en cada consulta.
-- **32 acciones rápidas** organizadas por categoría en la barra lateral.
+### 🧮 Camino 1 — Sin llave y sin costo, funciona ya
 
-### Las 26 herramientas
+Entre a **`/herramientas`**. Las 26 calculadoras y generadores son código puro, no IA: no necesitan llave, no cuestan un peso y funcionan apenas despliega la app.
+
+ROAS, presupuesto, márgenes, LTV/CAC, diagnóstico de campañas, estructura de cuenta, públicos, remarketing, guiones de WhatsApp, calendario comercial colombiano… todo con formularios.
+
+Lo único que no tiene es la conversación libre.
+
+### 💬 Camino 2 — Chat con IA gratis (30 segundos)
+
+1. Abra su llave **gratuita** en [Google AI Studio](https://aistudio.google.com/apikey) o en [Groq](https://console.groq.com/keys). No piden tarjeta.
+2. En la app, abra el panel **«Motor de IA»** de la barra lateral.
+3. Pegue la llave. Listo.
+
+La llave queda guardada **solo en su navegador**. No se registra en el servidor, no se sube a ningún lado y **no hay que tocar Vercel ni hacer redeploy**.
+
+### 🏢 Camino 3 — Que funcione para todos sin pedir llave
+
+Si quiere que cualquiera que abra el link pueda conversar sin poner su propia llave, ahí sí configure la variable de entorno en Vercel (`GOOGLE_API_KEY`, `GROQ_API_KEY` o `ANTHROPIC_API_KEY`) y haga **Redeploy**. La app usa la del servidor cuando el usuario no pega la suya.
+
+---
+
+## Motores soportados
+
+| Motor | Costo | Llave | Notas |
+|---|---|---|---|
+| **Google Gemini** | Gratis | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) | Capa gratuita generosa, sin tarjeta. **El recomendado para arrancar.** |
+| **Groq** | Gratis | [console.groq.com/keys](https://console.groq.com/keys) | El más rápido de los tres, sin tarjeta. |
+| **Anthropic (Claude)** | De pago | [console.anthropic.com](https://console.anthropic.com/settings/keys) | La mejor calidad de estrategia y textos, y el único con búsqueda web en vivo. |
+
+Se cambia de motor desde la propia app, sin tocar código. El modelo también se elige desde ahí.
+
+---
+
+## Las 26 herramientas
+
+Se ejecutan de verdad en el servidor: el modelo no se las inventa. Funcionan igual en el chat que en `/herramientas`.
 
 | Categoría | Herramientas |
 |---|---|
@@ -25,36 +57,25 @@ No es un chat genérico traducido al español: piensa, calcula y habla como un e
 | 🖥️ Conversión | `auditoria_landing_cro` · `plan_email_sms_whatsapp` |
 | 🇨🇴 Colombia | `calendario_comercial_colombia` · `benchmarks_colombia` · `metodos_pago_envios` · `normativa_publicidad` |
 
+Además, con Anthropic se activa **búsqueda web en vivo** para traer las actualizaciones recientes de Meta Ads.
+
 ---
 
 ## Desplegar en Vercel
 
-### Opción 1 — Un clic
+### Un clic
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjhontlopez548-coder%2FChat-bot-marketing-IA-&env=ANTHROPIC_API_KEY&envDescription=API%20key%20de%20Anthropic%20(console.anthropic.com)&project-name=vendemas-ia&repository-name=vendemas-ia)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjhontlopez548-coder%2FChat-bot-marketing-IA-&project-name=vendemas-ia&repository-name=vendemas-ia)
 
-Vercel le pide la variable `ANTHROPIC_API_KEY` durante el proceso. Eso es todo.
+**No le pide ninguna variable de entorno.** Despliegue y ya: las calculadoras funcionan de una, y para el chat pega la llave gratis dentro de la app.
 
-### Opción 2 — Importando el repo
+### Importando el repo
 
-1. Entre a [vercel.com/new](https://vercel.com/new) e importe este repositorio.
-2. Framework: **Next.js** (se detecta solo). No cambie nada más.
-3. En **Environment Variables** agregue:
-   | Variable | Valor |
-   |---|---|
-   | `ANTHROPIC_API_KEY` | Su key de [console.anthropic.com](https://console.anthropic.com) |
-4. **Deploy**.
+1. [vercel.com/new](https://vercel.com/new) → importe este repositorio.
+2. Framework: **Next.js** (se detecta solo). No cambie nada.
+3. **Deploy**.
 
-### Opción 3 — Desde la terminal
-
-```bash
-npm i -g vercel
-vercel login
-vercel --prod
-vercel env add ANTHROPIC_API_KEY production
-```
-
-> ⚠️ **Importante sobre el plan de Vercel:** la ruta `/api/chat` declara `maxDuration = 300`. En el plan Hobby sin Fluid Compute el tope es 60 segundos; si activa **Fluid Compute** (Settings → Functions) llega a los 300. Con respuestas largas y muchas herramientas conviene tenerlo activado.
+> ⚠️ **Si usa Anthropic:** la ruta `/api/chat` declara `maxDuration = 300`. En el plan Hobby el tope son 60 segundos salvo que active **Fluid Compute** (Settings → Functions). Con Gemini y Groq las respuestas son cortas y no suele hacer falta.
 
 ---
 
@@ -64,22 +85,22 @@ vercel env add ANTHROPIC_API_KEY production
 git clone https://github.com/jhontlopez548-coder/Chat-bot-marketing-IA-.git
 cd Chat-bot-marketing-IA-
 npm install
-cp .env.example .env.local     # y pegue su ANTHROPIC_API_KEY
 npm run dev
 ```
 
-Abra <http://localhost:3000>.
+Abra <http://localhost:3000>. No necesita archivo `.env` para nada: pegue la llave en la app.
 
 ---
 
-## Variables de entorno
+## Variables de entorno (todas opcionales)
 
-| Variable | Obligatoria | Por defecto | Para qué sirve |
-|---|---|---|---|
-| `ANTHROPIC_API_KEY` | ✅ Sí | — | Su API key de Anthropic |
-| `ANTHROPIC_MODEL` | No | `claude-opus-5` | Use `claude-sonnet-5` si quiere más velocidad y menos costo |
-| `ANTHROPIC_EFFORT` | No | `high` | `low` · `medium` · `high` · `xhigh` · `max` |
-| `BUSQUEDA_WEB` | No | `true` | Ponga `false` para desactivar la búsqueda web en vivo |
+| Variable | Para qué |
+|---|---|
+| `GOOGLE_API_KEY` | Llave de Gemini del lado del servidor (para que nadie tenga que poner la suya) |
+| `GROQ_API_KEY` | Igual, con Groq |
+| `ANTHROPIC_API_KEY` | Igual, con Claude |
+| `ANTHROPIC_EFFORT` | `low` · `medium` · `high` · `xhigh` · `max` (por defecto `high`) |
+| `BUSQUEDA_WEB` | `false` para apagar la búsqueda web de Anthropic |
 
 ---
 
@@ -87,30 +108,35 @@ Abra <http://localhost:3000>.
 
 ```
 app/
-  api/chat/route.ts     Streaming SSE + bucle de herramientas
+  api/chat/route.ts        Streaming SSE + bucle de herramientas (3 motores)
+  api/herramienta/route.ts Ejecuta una herramienta sin IA
+  herramientas/page.tsx    Modo sin IA (formularios)
   page.tsx · layout.tsx · globals.css
 components/
-  Chat.tsx              Estado, streaming y compositor
-  Mensaje.tsx           Markdown, tablas y panel de razonamiento
-  BarraLateral.tsx      Negocio, contexto y acciones rápidas
-  TarjetaHerramienta.tsx
+  Chat.tsx                 Estado, streaming y compositor
+  BarraLateral.tsx         Motor de IA, negocio y acciones rápidas
+  Herramientas.tsx         Formularios generados desde los esquemas
+  Mensaje.tsx · TarjetaHerramienta.tsx · ResultadoJson.tsx
 lib/
-  system-prompt.ts      Personalidad y dialecto colombiano
-  prompts-rapidos.ts    32 acciones rápidas
-  tools/definitions.ts  Esquemas de las 26 herramientas
-  tools/executors.ts    Lógica real (matemática y plantillas)
-  data/colombia.ts      Benchmarks, calendario, pagos, normativa
+  proveedores.ts           Gemini, Groq y Anthropic
+  system-prompt.ts         Personalidad y dialecto colombiano
+  prompts-rapidos.ts       32 acciones rápidas
+  tools/definitions.ts     Esquemas de las 26 herramientas
+  tools/executors.ts       Lógica real (matemática y plantillas)
+  tools/esquemas.ts        Traduce los esquemas a cada motor
+  tools/catalogo.ts        Títulos, íconos y categorías
+  data/colombia.ts         Benchmarks, calendario, pagos, normativa
 ```
 
-**Stack:** Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS · `@anthropic-ai/sdk`.
+**Stack:** Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS.
 
-El flujo de una consulta: el navegador abre un stream contra `/api/chat` → el modelo responde en streaming → si pide una herramienta, el servidor la ejecuta y le devuelve el resultado → el modelo lo interpreta y sigue escribiendo. Todo en el mismo stream, sin recargar.
+Un mismo catálogo de herramientas se traduce al formato de cada motor (Anthropic `tools`, OpenAI `functions`, Gemini `functionDeclarations`), así que agregar una herramienta nueva la deja disponible en los tres de una vez.
 
 ---
 
 ## Nota sobre las cifras
 
-Los rangos de CPM, CTR, CPA y ticket que trae la app son **referencias de mercado para planear**, no datos oficiales de Meta. El asistente lo advierte cuando los usa. Los números reales de su cuenta mandan siempre.
+Los rangos de CPM, CTR, CPA y ticket son **referencias de mercado para planear**, no datos oficiales de Meta. El asistente lo advierte cuando los usa. Los números reales de su cuenta mandan siempre.
 
 Las orientaciones legales (SIC, Habeas Data, IVA, INVIMA) son informativas y no reemplazan asesoría jurídica.
 
@@ -118,8 +144,8 @@ Las orientaciones legales (SIC, Habeas Data, IVA, INVIMA) son informativas y no 
 
 ## Personalizarlo
 
-- **Cambiar el tono o las reglas del asistente** → `lib/system-prompt.ts`
-- **Actualizar benchmarks o fechas comerciales** → `lib/data/colombia.ts`
-- **Agregar una herramienta nueva** → agregue el esquema en `lib/tools/definitions.ts` y la función en `lib/tools/executors.ts` (el despachador la toma automáticamente)
-- **Agregar acciones rápidas** → `lib/prompts-rapidos.ts`
-- **Cambiar colores de marca** → `tailwind.config.ts` (paleta `marca`)
+- **Tono y reglas del asistente** → `lib/system-prompt.ts`
+- **Benchmarks y fechas comerciales** → `lib/data/colombia.ts`
+- **Herramienta nueva** → esquema en `lib/tools/definitions.ts` + función en `lib/tools/executors.ts` + ficha en `lib/tools/catalogo.ts`. Queda disponible en el chat, en los tres motores y en `/herramientas` automáticamente.
+- **Acciones rápidas** → `lib/prompts-rapidos.ts`
+- **Colores** → `tailwind.config.ts` (paleta `marca`)

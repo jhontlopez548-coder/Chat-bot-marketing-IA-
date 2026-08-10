@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import BarraLateral, { CONTEXTO_INICIAL, type Contexto } from "./BarraLateral";
+import BarraLateral, { CONTEXTO_INICIAL, MOTOR_INICIAL, type Contexto, type Motor } from "./BarraLateral";
 import Mensaje, { type Bloque, type MensajeChat } from "./Mensaje";
+import { PROVEEDORES } from "@/lib/proveedores";
 
 const SUGERENCIAS_INICIO = [
   "¿Cuánto debo invertir en Meta Ads para vender 100 unidades al mes?",
@@ -20,17 +22,23 @@ export default function Chat() {
   const [entrada, setEntrada] = useState("");
   const [cargando, setCargando] = useState(false);
   const [contexto, setContexto] = useState<Contexto>(CONTEXTO_INICIAL);
+  const [motor, setMotor] = useState<Motor>(MOTOR_INICIAL);
   const [barraAbierta, setBarraAbierta] = useState(false);
 
   const finRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Cargar y guardar el contexto del negocio en el navegador
+  const motorListo = motor.apiKey.trim().length > 10;
+  const proveedor = PROVEEDORES[motor.proveedor];
+
+  // Cargar y guardar preferencias en el navegador
   useEffect(() => {
     try {
-      const guardado = localStorage.getItem("vendemas_contexto");
-      if (guardado) setContexto({ ...CONTEXTO_INICIAL, ...JSON.parse(guardado) });
+      const ctx = localStorage.getItem("vendemas_contexto");
+      if (ctx) setContexto({ ...CONTEXTO_INICIAL, ...JSON.parse(ctx) });
+      const mtr = localStorage.getItem("vendemas_motor");
+      if (mtr) setMotor({ ...MOTOR_INICIAL, ...JSON.parse(mtr) });
     } catch {
       /* ignorar */
     }
@@ -43,6 +51,14 @@ export default function Chat() {
       /* ignorar */
     }
   }, [contexto]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("vendemas_motor", JSON.stringify(motor));
+    } catch {
+      /* ignorar */
+    }
+  }, [motor]);
 
   useEffect(() => {
     finRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -73,10 +89,8 @@ export default function Chat() {
       bloques: [{ tipo: "texto", texto: limpio }],
     };
     const idAsistente = idNuevo();
-    const mensajeAsistente: MensajeChat = { id: idAsistente, rol: "asistente", bloques: [] };
-
     const historial = [...mensajes, mensajeUsuario];
-    setMensajes([...historial, mensajeAsistente]);
+    setMensajes([...historial, { id: idAsistente, rol: "asistente", bloques: [] }]);
     setEntrada("");
     setCargando(true);
 
@@ -93,6 +107,9 @@ export default function Chat() {
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({
+          proveedor: motor.proveedor,
+          apiKey: motor.apiKey,
+          modelo: motor.modelo || proveedor.modeloPorDefecto,
           mensajes: historial.map((m) => ({
             rol: m.rol,
             texto: m.bloques
@@ -111,9 +128,12 @@ export default function Chat() {
         }),
       });
 
-      if (!res.ok || !res.body) {
-        const detalle = await res.json().catch(() => ({ error: "Error de conexión con el servidor." }));
-        actualizar((m) => ({ ...m, error: detalle.error ?? "No se pudo procesar la solicitud." }));
+      const tipo = res.headers.get("content-type") ?? "";
+
+      // Respuesta de error o de «falta la llave»: viene como JSON, no como stream.
+      if (!res.ok || tipo.includes("application/json") || !res.body) {
+        const data = await res.json().catch(() => ({ error: "No se pudo conectar con el servidor." }));
+        actualizar((m) => ({ ...m, error: data.error ?? "No se pudo procesar la solicitud." }));
         setCargando(false);
         return;
       }
@@ -177,10 +197,7 @@ export default function Chat() {
               return { ...m, bloques };
             });
           } else if (evento.t === "busqueda_inicio") {
-            actualizar((m) => ({
-              ...m,
-              bloques: [...m.bloques, { tipo: "busqueda", estado: "corriendo" } as Bloque],
-            }));
+            actualizar((m) => ({ ...m, bloques: [...m.bloques, { tipo: "busqueda", estado: "corriendo" } as Bloque] }));
           } else if (evento.t === "busqueda_fin") {
             actualizar((m) => {
               const bloques = [...m.bloques];
@@ -200,10 +217,7 @@ export default function Chat() {
       }
     } catch (e) {
       if ((e as Error).name !== "AbortError") {
-        actualizar((m) => ({
-          ...m,
-          error: "Se perdió la conexión. Intente de nuevo.",
-        }));
+        actualizar((m) => ({ ...m, error: "Se perdió la conexión. Intente de nuevo." }));
       }
     } finally {
       setCargando(false);
@@ -224,6 +238,8 @@ export default function Chat() {
       <BarraLateral
         contexto={contexto}
         setContexto={setContexto}
+        motor={motor}
+        setMotor={setMotor}
         onUsarPrompt={usarPrompt}
         onNuevaConversacion={() => {
           detener();
@@ -232,10 +248,10 @@ export default function Chat() {
         }}
         abierta={barraAbierta}
         onCerrar={() => setBarraAbierta(false)}
+        abrirMotor={!motorListo}
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
-        {/* Barra superior móvil */}
         <header className="flex items-center gap-3 border-b border-neutral-800 px-4 py-3 lg:hidden">
           <button
             onClick={() => setBarraAbierta(true)}
@@ -246,11 +262,10 @@ export default function Chat() {
           </button>
           <p className="font-semibold text-white">VendeMás IA</p>
           <span className="ml-auto text-xs text-neutral-500">
-            {contexto.negocio === "perfumeria" ? "🌸 Perfumería" : contexto.negocio === "muebleria" ? "🛋️ Mueblería" : "🏪 Los dos"}
+            {motorListo ? proveedor.nombre.split(" ")[0] : "⚠️ Sin llave"}
           </span>
         </header>
 
-        {/* Conversación */}
         <div className="flex-1 overflow-y-auto">
           {mensajes.length === 0 ? (
             <div className="mx-auto flex h-full max-w-3xl flex-col items-center justify-center px-6 py-10 text-center">
@@ -260,12 +275,48 @@ export default function Chat() {
               <h1 className="mb-2 text-2xl font-bold text-white sm:text-3xl">
                 Su estratega de Meta Ads en Colombia
               </h1>
-              <p className="mb-8 max-w-lg text-[15px] leading-relaxed text-neutral-400">
+              <p className="mb-6 max-w-lg text-[15px] leading-relaxed text-neutral-400">
                 Le ayudo a vender más en <strong className="text-neutral-200">perfumería</strong> y{" "}
                 <strong className="text-neutral-200">mueblería</strong> con campañas que sí dejan plata.
                 Calculadoras reales, estructura de cuenta, creativos, guiones de WhatsApp y todo el
-                contexto colombiano: quincenas, Nequi, contraentrega y Día de la Madre.
+                contexto colombiano.
               </p>
+
+              {!motorListo && (
+                <div className="mb-6 w-full rounded-xl border border-marca-800 bg-marca-950/40 p-4 text-left">
+                  <p className="mb-1 text-sm font-semibold text-marca-200">
+                    Para conversar necesita una llave gratuita (30 segundos)
+                  </p>
+                  <p className="mb-3 text-[13px] leading-relaxed text-neutral-400">
+                    Abra su llave gratis en{" "}
+                    <a
+                      href={proveedor.urlLlave}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-marca-400 underline underline-offset-2"
+                    >
+                      {proveedor.nombre}
+                    </a>{" "}
+                    (no le piden tarjeta) y péguela en el panel <strong className="text-neutral-300">«Motor de IA»</strong> de
+                    la barra lateral. Se guarda en su navegador; no hay que tocar Vercel.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setBarraAbierta(true)}
+                      className="rounded-lg bg-marca-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-marca-500 lg:hidden"
+                    >
+                      Abrir el panel
+                    </button>
+                    <Link
+                      href="/herramientas"
+                      className="rounded-lg border border-emerald-800 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-950/40"
+                    >
+                      🧮 O use las calculadoras sin IA (ya funcionan)
+                    </Link>
+                  </div>
+                </div>
+              )}
+
               <div className="grid w-full gap-2 sm:grid-cols-2">
                 {SUGERENCIAS_INICIO.map((s) => (
                   <button
@@ -277,10 +328,6 @@ export default function Chat() {
                   </button>
                 ))}
               </div>
-              <p className="mt-8 text-xs text-neutral-600">
-                Abra el menú lateral para ver las {" "}
-                <span className="text-neutral-500">herramientas especializadas</span> y cargar los datos de su negocio.
-              </p>
             </div>
           ) : (
             <div className="mx-auto max-w-3xl py-4">
@@ -296,10 +343,9 @@ export default function Chat() {
           )}
         </div>
 
-        {/* Compositor */}
         <div className="border-t border-neutral-800 bg-neutral-950 px-4 py-3">
           <div className="mx-auto max-w-3xl">
-            <div className="flex items-end gap-2 rounded-2xl border border-neutral-800 bg-neutral-900 p-2 focus-within:border-marca-600 transition-colors">
+            <div className="flex items-end gap-2 rounded-2xl border border-neutral-800 bg-neutral-900 p-2 transition-colors focus-within:border-marca-600">
               <textarea
                 ref={textareaRef}
                 value={entrada}
