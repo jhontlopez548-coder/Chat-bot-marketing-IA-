@@ -299,12 +299,19 @@ async function agenteGemini(
       if (!Array.isArray(partes)) continue;
 
       for (const parte of partes) {
-        if (typeof parte.text === "string" && parte.text) {
-          enviar({ t: "texto", v: parte.text });
-          partesModelo.push({ text: parte.text });
-        } else if (parte.functionCall) {
-          partesModelo.push({ functionCall: parte.functionCall });
+        if (!parte || Object.keys(parte).length === 0) continue;
+
+        // La parte se guarda TAL CUAL llegó. Los modelos Gemini 3 le adjuntan
+        // un `thoughtSignature` que hay que devolver intacto en el siguiente
+        // turno; si se reconstruye la parte, esa firma se pierde y la API
+        // rechaza la llamada a herramientas. Ojo: la firma puede venir en una
+        // parte con el texto vacío, por eso se conservan todas.
+        partesModelo.push(parte);
+
+        if (parte.functionCall) {
           llamadas.push({ nombre: parte.functionCall.name, args: parte.functionCall.args ?? {} });
+        } else if (typeof parte.text === "string" && parte.text) {
+          enviar({ t: parte.thought ? "pensando" : "texto", v: parte.text });
         }
       }
     }
