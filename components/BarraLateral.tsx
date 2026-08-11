@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CATEGORIAS, PROMPTS_RAPIDOS, type Categoria } from "@/lib/prompts-rapidos";
 import { ORDEN_PROVEEDORES, PROVEEDORES, type ProveedorId } from "@/lib/proveedores";
 
@@ -35,11 +35,16 @@ export const MOTOR_INICIAL: Motor = {
   modelo: "",
 };
 
+interface ModeloDisponible {
+  id: string;
+  nombre: string;
+}
+
 interface Props {
   contexto: Contexto;
   setContexto: (c: Contexto) => void;
   motor: Motor;
-  setMotor: (m: Motor) => void;
+  setMotor: React.Dispatch<React.SetStateAction<Motor>>;
   onUsarPrompt: (texto: string) => void;
   onNuevaConversacion: () => void;
   abierta: boolean;
@@ -63,9 +68,70 @@ export default function BarraLateral({
   const [mostrarContexto, setMostrarContexto] = useState(false);
   const [mostrarMotor, setMostrarMotor] = useState(true);
   const [verLlave, setVerLlave] = useState(false);
+  const [modelosVivos, setModelosVivos] = useState<ModeloDisponible[]>([]);
+  const [cargandoModelos, setCargandoModelos] = useState(false);
+  const [avisoModelos, setAvisoModelos] = useState<string | null>(null);
 
   const proveedor = PROVEEDORES[motor.proveedor];
   const configurado = motor.apiKey.trim().length > 10;
+
+  /**
+   * Le pregunta al proveedor qué modelos tiene disponibles esta llave.
+   * Los proveedores retiran modelos cada tanto, así que la lista no puede
+   * estar quemada en el código.
+   */
+  const cargarModelos = useCallback(
+    async (proveedorId: ProveedorId, llave: string) => {
+      if (llave.trim().length < 10) {
+        setModelosVivos([]);
+        setAvisoModelos(null);
+        return;
+      }
+      setCargandoModelos(true);
+      setAvisoModelos(null);
+      try {
+        const res = await fetch("/api/modelos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ proveedor: proveedorId, apiKey: llave }),
+        });
+        const data = await res.json();
+        const lista: ModeloDisponible[] = data.modelos ?? [];
+        setModelosVivos(lista);
+
+        if (lista.length > 0) {
+          const porDefecto = PROVEEDORES[proveedorId].modeloPorDefecto;
+          setMotor((prev) => {
+            const actual = prev.modelo || porDefecto;
+            if (lista.some((m) => m.id === actual)) return prev;
+            setAvisoModelos(
+              `«${actual}» ya no está disponible. Se cambió a «${lista[0].nombre}».`,
+            );
+            return { ...prev, modelo: lista[0].id };
+          });
+        } else if (data.error) {
+          setAvisoModelos(data.error);
+        }
+      } catch {
+        setAvisoModelos("No se pudo consultar la lista de modelos.");
+      } finally {
+        setCargandoModelos(false);
+      }
+    },
+    [setMotor],
+  );
+
+  // Al cambiar de proveedor o de llave, se refresca la lista (con un respiro
+  // para no disparar una consulta por cada tecla).
+  useEffect(() => {
+    const t = setTimeout(() => cargarModelos(motor.proveedor, motor.apiKey), 700);
+    return () => clearTimeout(t);
+  }, [motor.proveedor, motor.apiKey, cargarModelos]);
+
+  const opcionesModelo: ModeloDisponible[] =
+    modelosVivos.length > 0
+      ? modelosVivos
+      : proveedor.modelos.map((m) => ({ id: m.id, nombre: m.nombre }));
 
   const prompts = useMemo(() => {
     const q = buscar.trim().toLowerCase();
@@ -171,24 +237,48 @@ export default function BarraLateral({
                 </div>
 
                 <div>
-                  <label htmlFor="modelo" className="text-[11px] text-neutral-400">
-                    Modelo
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="modelo" className="text-[11px] text-neutral-400">
+                      Modelo
+                      {modelosVivos.length > 0 && (
+                        <span className="ml-1 text-emerald-500">· {modelosVivos.length} disponibles</span>
+                      )}
+                    </label>
+                    <button
+                      onClick={() => cargarModelos(motor.proveedor, motor.apiKey)}
+                      disabled={cargandoModelos || !configurado}
+                      className="text-[10px] text-neutral-600 hover:text-marca-400 disabled:opacity-40"
+                    >
+                      {cargandoModelos ? "consultando…" : "actualizar lista"}
+                    </button>
+                  </div>
                   <select
                     id="modelo"
                     value={motor.modelo || proveedor.modeloPorDefecto}
-                    onChange={(e) => setMotor({ ...motor, modelo: e.target.value })}
+                    onChange={(e) => setMotor((prev) => ({ ...prev, modelo: e.target.value }))}
                     className="mt-1 w-full rounded-md border border-neutral-800 bg-neutral-900 px-2.5 py-1.5 text-xs text-neutral-200 focus:border-marca-600 focus:outline-none"
                   >
-                    {proveedor.modelos.map((m) => (
+                    {opcionesModelo.map((m) => (
                       <option key={m.id} value={m.id}>
                         {m.nombre}
                       </option>
                     ))}
+                    {!opcionesModelo.some((m) => m.id === (motor.modelo || proveedor.modeloPorDefecto)) && (
+                      <option value={motor.modelo || proveedor.modeloPorDefecto}>
+                        {motor.modelo || proveedor.modeloPorDefecto}
+                      </option>
+                    )}
                   </select>
-                  <p className="mt-1 text-[10px] leading-relaxed text-neutral-600">
-                    {proveedor.modelos.find((m) => m.id === (motor.modelo || proveedor.modeloPorDefecto))?.nota}
-                  </p>
+
+                  {avisoModelos ? (
+                    <p className="mt-1 text-[10px] leading-relaxed text-marca-400">⚠️ {avisoModelos}</p>
+                  ) : (
+                    <p className="mt-1 text-[10px] leading-relaxed text-neutral-600">
+                      {modelosVivos.length > 0
+                        ? "Lista consultada directamente a su cuenta: siempre está al día."
+                        : proveedor.modelos.find((m) => m.id === (motor.modelo || proveedor.modeloPorDefecto))?.nota}
+                    </p>
+                  )}
                 </div>
 
                 <p className="rounded-md border border-neutral-800 bg-neutral-900/60 px-2 py-1.5 text-[10px] leading-relaxed text-neutral-500">

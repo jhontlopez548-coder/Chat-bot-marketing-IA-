@@ -40,7 +40,9 @@ Si quiere que cualquiera que abra el link pueda conversar sin poner su propia ll
 | **Groq** | Gratis | [console.groq.com/keys](https://console.groq.com/keys) | El más rápido de los tres, sin tarjeta. |
 | **Anthropic (Claude)** | De pago | [console.anthropic.com](https://console.anthropic.com/settings/keys) | La mejor calidad de estrategia y textos, y el único con búsqueda web en vivo. |
 
-Se cambia de motor desde la propia app, sin tocar código. El modelo también se elige desde ahí.
+Se cambia de motor desde la propia app, sin tocar código.
+
+**La lista de modelos se consulta en vivo a su cuenta.** Los proveedores retiran modelos cada tanto (Google retiró los Gemini 2.5 para llaves nuevas, Groq retiró Llama 3.3), así que la app le pregunta al proveedor qué modelos tiene disponibles *su* llave y le muestra solo esos. Si el que tenía elegido desaparece, lo cambia solo y le avisa. Nunca se queda obsoleta.
 
 ---
 

@@ -398,8 +398,14 @@ export async function POST(req: Request) {
           amigable = `La llave de ${proveedor.nombre} no es válida o está mal pegada. Revísela en ${proveedor.urlLlave}.`;
         } else if (bajo.includes("429") || bajo.includes("quota") || bajo.includes("rate limit")) {
           amigable = `Se acabó la cuota gratis de ${proveedor.nombre} por ahora. Espere unos minutos, cambie de modelo o pruebe con el otro motor gratuito.`;
-        } else if (bajo.includes("not found") || bajo.includes("404") || bajo.includes("decommission")) {
-          amigable = `El modelo «${modelo}» ya no existe en ${proveedor.nombre}. Elija otro en el panel «Motor de IA» (la lista de modelos cambia cada tanto).`;
+        } else if (
+          bajo.includes("not found") ||
+          bajo.includes("404") ||
+          bajo.includes("decommission") ||
+          bajo.includes("no longer available") ||
+          bajo.includes("deprecated")
+        ) {
+          amigable = `El modelo «${modelo}» ya no está disponible en ${proveedor.nombre}. En el panel «Motor de IA» dele a «actualizar lista» y elija uno de los que aparezcan: esa lista se consulta directamente a su cuenta.`;
         } else if (bajo.includes("503") || bajo.includes("overloaded") || bajo.includes("unavailable")) {
           amigable = `${proveedor.nombre} está congestionado. Intente otra vez en unos segundos.`;
         }
